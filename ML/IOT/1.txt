@@ -1,0 +1,280 @@
+An automated door opener is an excellent project to understand the fundamentals of IoT and home automation. This guide provides two complete designs for creating this system, one using an Arduino Uno and another using a Raspberry Pi. Both designs utilize an ultrasonic sensor to detect presence and a servo motor to actuate the door.
+
+### Design 1: IoT Door Opener using Arduino Uno
+
+This design is a straightforward and robust solution, perfect for beginners.
+
+#### **Components Required**
+
+*   Arduino Uno R3
+*   HC-SR04 Ultrasonic Sensor
+*   SG90 or MG90S Servo Motor
+*   Breadboard
+*   Jumper Wires (Male-to-Male and Male-to-Female)
+*   USB Cable (Type A to B) for programming the Arduino
+*   Optional: 9V battery and DC barrel jack connector for standalone power
+
+#### **Interfacing Steps (Wiring)**
+
+1.  **Power Connections:**
+    *   Connect the Arduino's `5V` pin to the positive (red) rail of the breadboard.
+    *   Connect the Arduino's `GND` pin to the negative (blue) rail of the breadboard.
+
+2.  **Ultrasonic Sensor (HC-SR04) Connection:**
+    *   `VCC` pin to the positive rail of the breadboard (which is connected to Arduino's 5V).
+    *   `GND` pin to the negative rail of the breadboard (connected to Arduino's GND).
+    *   `Trig` pin to digital pin 7 on the Arduino.
+    *   `Echo` pin to digital pin 6 on the Arduino.
+
+3.  **Servo Motor (SG90) Connection:**
+    *   `VCC` (Red wire) to the positive rail of the breadboard.
+    *   `GND` (Brown/Black wire) to the negative rail of the breadboard.
+    *   `Signal` (Orange/Yellow wire) to digital pin 9 on the Arduino (a PWM pin, indicated by `~`).
+
+**Wiring Diagram:**
+
+```
++-------------------+      +-------------------------+
+|    Arduino Uno    |      |    Ultrasonic Sensor    |
+|-------------------|      |-------------------------|
+|        5V         |----->|           VCC           |
+|        GND        |----->|           GND           |
+|     Digital 7     |----->|           Trig          |
+|     Digital 6     |<-----|           Echo          |
+|     Digital 9     |----->|       Servo Signal      |
++-------------------+      +-------------------------+
+                               |
+                               | (VCC and GND for Servo
+                               |  also connect to 5V
+                               |  and GND respectively)
+```
+
+#### **Arduino Code**
+
+This code will make the servo motor rotate to 90 degrees (opening the door) when an object is detected within 50 centimeters and return to 0 degrees (closing the door) when the object is no longer detected.
+
+```cpp
+#include <Servo.h>
+
+// Define pin numbers for ultrasonic sensor and servo motor
+const int TRIG_PIN = 7;
+const int ECHO_PIN = 6;
+const int SERVO_PIN = 9;
+
+// Define a distance threshold in centimeters
+const int DISTANCE_THRESHOLD = 50;
+
+// Create a servo object
+Servo doorServo;
+
+void setup() {
+  // Start serial communication for debugging
+  Serial.begin(9600);
+
+  // Set pin modes for the ultrasonic sensor
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+
+  // Attach the servo to its pin
+  doorServo.attach(SERVO_PIN);
+  // Start with the door closed
+  doorServo.write(0);
+}
+
+void loop() {
+  long duration, distance;
+
+  // Trigger the ultrasonic sensor to send a sound wave
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+
+  // Measure the time it takes for the echo to return
+  duration = pulseIn(ECHO_PIN, HIGH);
+
+  // Calculate the distance in centimeters
+  distance = duration * 0.034 / 2;
+
+  // Print the distance to the Serial Monitor for debugging
+  Serial.print("Distance: ");
+  Serial.println(distance);
+
+  // Check if an object is within the threshold
+  if (distance < DISTANCE_THRESHOLD) {
+    // Open the door
+    doorServo.write(90);
+  } else {
+    // Close the door
+    doorServo.write(0);
+  }
+
+  // Wait for a short period before the next reading
+  delay(100);
+}
+```
+
+#### **Steps to Run the Code**
+
+1.  **Install Arduino IDE:** Download and install the Arduino IDE from the official Arduino website.
+2.  **Connect the Arduino:** Connect your Arduino Uno to your computer using the USB cable.
+3.  **Set up the IDE:**
+    *   Open the Arduino IDE.
+    *   Go to `Tools > Board` and select "Arduino Uno".
+    *   Go to `Tools > Port` and select the COM port that your Arduino is connected to.
+4.  **Upload the Code:**
+    *   Copy and paste the code above into the Arduino IDE.
+    *   Click the "Upload" button (the right-arrow icon) to send the code to the Arduino.
+5.  **Test the System:** Once the code is uploaded, the system is active. Move your hand in front of the ultrasonic sensor. The servo motor should rotate when your hand is close and return to its original position when you move it away.
+
+---
+
+### Design 2: IoT Door Opener using Raspberry Pi
+
+This design offers more flexibility for future expansions, such as adding web control or notifications.
+
+#### **Components Required**
+
+*   Raspberry Pi (any model with GPIO pins, e.g., Raspberry Pi 4, 5)
+*   HC-SR04 Ultrasonic Sensor
+*   SG90 or MG90S Servo Motor
+*   Breadboard
+*   Jumper Wires (Female-to-Male)
+*   MicroSD Card with Raspberry Pi OS installed
+*   USB-C Power Supply (for newer Raspberry Pi models)
+*   Optional: External 5V power supply for the servo motor to prevent overloading the Raspberry Pi.
+
+#### **Interfacing a New Raspberry Pi with USB-C Power**
+
+Newer Raspberry Pi models (4, 5, etc.) use a USB-C port for power.
+
+1.  **Get the Right Power Supply:** You need a power supply that provides at least 5V and 3.0A for a Raspberry Pi 4 or 5. Using the official Raspberry Pi USB-C power supply is highly recommended to ensure stability.
+2.  **Connect Power:** Simply plug the USB-C power supply into a wall socket and connect it to your Raspberry Pi's USB-C power port. The Pi will boot up automatically.
+3.  **Headless or Attached Setup:**
+    *   **Attached:** Connect a keyboard, mouse, and monitor to your Raspberry Pi to use the desktop environment.
+    *   **Headless:** You can connect to your Raspberry Pi remotely over a network using SSH without needing a dedicated monitor and keyboard.
+
+#### **Interfacing Steps (Wiring)**
+
+**Important:** The Raspberry Pi's GPIO pins operate at 3.3V. While the HC-SR04 is often 5V tolerant, it's safer to use a voltage divider for the Echo pin. However, for simplicity in this beginner's guide, we will connect it directly, which often works without issues.
+
+1.  **Ultrasonic Sensor (HC-SR04) Connection:**
+    *   `VCC` pin to a **5V** pin on the Raspberry Pi (e.g., pin 2).
+    *   `GND` pin to a **Ground** pin on the Raspberry Pi (e.g., pin 6).
+    *   `Trig` pin to **GPIO 23** (pin 16).
+    *   `Echo` pin to **GPIO 24** (pin 18).
+
+2.  **Servo Motor (SG90) Connection:**
+    *   `VCC` (Red wire) to another **5V** pin on the Raspberry Pi (e.g., pin 4).
+    *   `GND` (Brown/Black wire) to a **Ground** pin (e.g., pin 9).
+    *   `Signal` (Orange/Yellow wire) to **GPIO 17** (pin 11).
+
+**Raspberry Pi GPIO Pinout Reference:**
+Refer to a Raspberry Pi pinout diagram to locate the correct pins.
+
+#### **Python Code**
+
+This Python script uses the `RPi.GPIO` library to control the components.
+
+```python
+import RPi.GPIO as GPIO
+import time
+
+# Set GPIO numbering mode
+GPIO.setmode(GPIO.BCM)
+GPIO.setwarnings(False)
+
+# Define pin numbers
+TRIG_PIN = 23
+ECHO_PIN = 24
+SERVO_PIN = 17
+
+# Set up GPIO pins
+GPIO.setup(TRIG_PIN, GPIO.OUT)
+GPIO.setup(ECHO_PIN, GPIO.IN)
+GPIO.setup(SERVO_PIN, GPIO.OUT)
+
+# Set up PWM for the servo
+# 50Hz is a standard frequency for servos
+pwm = GPIO.PWM(SERVO_PIN, 50)
+pwm.start(0) # Start with no pulse
+
+def get_distance():
+    """Measures distance using the ultrasonic sensor."""
+    # Send a 10us pulse to trigger
+    GPIO.output(TRIG_PIN, True)
+    time.sleep(0.00001)
+    GPIO.output(TRIG_PIN, False)
+
+    start_time = time.time()
+    stop_time = time.time()
+
+    # Save start time
+    while GPIO.input(ECHO_PIN) == 0:
+        start_time = time.time()
+
+    # Save time of arrival
+    while GPIO.input(ECHO_PIN) == 1:
+        stop_time = time.time()
+
+    time_elapsed = stop_time - start_time
+    # Multiply by the sonic speed (34300 cm/s)
+    # and divide by 2, because there and back
+    distance = (time_elapsed * 34300) / 2
+    return distance
+
+def set_angle(angle):
+    """Sets the servo motor to a specific angle."""
+    duty = angle / 18 + 2
+    GPIO.output(SERVO_PIN, True)
+    pwm.ChangeDutyCycle(duty)
+    time.sleep(1)
+    GPIO.output(SERVO_PIN, False)
+    pwm.ChangeDutyCycle(0)
+
+try:
+    print("Starting door opener system...")
+    # Set initial position (door closed)
+    set_angle(0)
+    
+    while True:
+        dist = get_distance()
+        print(f"Measured Distance = {dist:.1f} cm")
+        
+        # If an object is within 20 cm, open the door
+        if dist < 20:
+            print("Object detected! Opening door.")
+            set_angle(90) # Open position
+            time.sleep(5) # Keep the door open for 5 seconds
+            print("Closing door.")
+            set_angle(0)  # Close position
+        
+        time.sleep(1)
+
+except KeyboardInterrupt:
+    print("Measurement stopped by User")
+    pwm.stop()
+    GPIO.cleanup()
+```
+
+#### **Steps to Run the Code**
+
+1.  **Prepare your Raspberry Pi:** Ensure your Raspberry Pi is set up with Raspberry Pi OS, connected to a network, and you can access the command line (either directly or via SSH).
+2.  **Install Library:** The `RPi.GPIO` library usually comes pre-installed. If not, you can install it by opening a terminal and running:
+    ```bash
+    sudo apt-get update
+    sudo apt-get install python3-rpi.gpio
+    ```
+3.  **Save the Code:**
+    *   Open a text editor on your Raspberry Pi (like Thonny or nano).
+    *   Copy and paste the Python code above.
+    *   Save the file as `door_opener.py`.
+4.  **Run the Script:**
+    *   Open a terminal.
+    *   Navigate to the directory where you saved the file.
+    *   Run the script with the following command:
+    ```bash
+    python3 door_opener.py
+    ```
+5.  **Test the System:** The script will start running. Move your hand in front of the sensor to trigger the servo motor. You can stop the script by pressing `Ctrl + C` in the terminal.
